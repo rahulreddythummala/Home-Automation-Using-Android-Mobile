@@ -1,0 +1,283 @@
+package com.rab.mango;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Locale;
+
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.StrictMode;
+import android.speech.RecognizerIntent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class Mango extends Activity {
+	
+	ImageButton speakbt;
+	TextView cmdutt;
+	TextView poscmd;
+	TextView cmdtt;
+	protected static final int RESULT_SPEECH = 1;
+	Socket socket = null;
+	String pos="2";
+	Button send;
+	Button connect;
+	String host = "192.168.1.3";
+    int port = 12345;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_mango);
+		
+		speakbt=(ImageButton)findViewById(R.id.speakbt);
+		cmdutt=(TextView)findViewById(R.id.cmdspok1);
+		poscmd=(TextView)findViewById(R.id.poscmd);
+		cmdtt=(TextView)findViewById(R.id.cmdtxt);
+		
+		send=(Button)findViewById(R.id.sendbt);
+		//connect=(Button)findViewById(R.id.connect);
+		
+		
+		/*connect.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				connectMango();
+				
+			}
+		});*/
+		
+		
+		
+		
+		send.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				
+				pos=cmdtt.getText().toString();
+				//showMsg(pos);
+				if(!pos.equals("")){
+					connectMango();
+					sendCmd();
+					//closeMango();
+				}
+				else if(pos.equals("close"))
+					closeMango();
+				else
+					showMsg("Please Enter the Command");
+				
+				cmdtt.setText("");
+			}
+		});
+		
+		speakbt.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				
+				 Intent intent = new Intent(
+	                        RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+				 
+				 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+	               
+	             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+	             
+	             try {
+	                    startActivityForResult(intent, RESULT_SPEECH);
+	                    //startActivityForResult(intent,REQ_CODE_SPEECH_INPUT);
+	                   cmdutt.setText("Nothing Said");
+	                } catch (ActivityNotFoundException a) {
+	                    Toast t = Toast.makeText(getApplicationContext(),
+	                            "Opps! Your device doesn't support Speech to Text",
+	                            Toast.LENGTH_SHORT);
+	                    t.show();
+	                }
+	               
+				
+			}
+		});
+		
+		
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.mango, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+ 
+        switch (requestCode) {
+        case RESULT_SPEECH: {
+            if (resultCode == RESULT_OK && null != data) {
+ 
+                ArrayList<String> text = data
+                        .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+ 
+                cmdutt.setText(text.get(0));
+                pos=postProcessing();
+                poscmd.setText(pos);
+                if(pos.equals("led1on"))
+                {
+                	connectMango();
+					sendCmd();
+                }
+                if(pos.equals("led1off"))
+                {
+                	connectMango();
+					sendCmd();
+                }
+                
+            }
+            break;
+        }
+ 
+        }
+    }
+	
+	public String postProcessing()
+	{
+		String precmd="nothingsaid";
+		String poscmd="";
+		
+		precmd=(String) cmdutt.getText();
+		cmdutt.setText(precmd);
+		showMsg(precmd);
+		
+		if(precmd.matches("^(.*?(\\bon\\b)[^$]*)$"))
+		{
+			showMsg("on");
+			if(precmd.matches("^(.*?(\\blight\\b)[^$]*)$")||precmd.matches("^(.*?(\\blake\\b)[^$]*)$")||precmd.matches("^(.*?(\\blakeland\\b)[^$]*)$")||precmd.matches("^(.*?(\\blate\\b)[^$]*)$")||precmd.matches("^(.*?(\\bflight\\b)[^$]*)$")||precmd.matches("^(.*?(\\blike\\b)[^$]*)$"))
+			{
+				showMsg("light");
+				if(precmd.matches("^(.*?(\\bone\\b)[^$]*)$")||precmd.matches("^(.*?(\\b1\\b)[^$]*)$")||precmd.matches("^(.*?(\\bman\\b)[^$]*)$")||precmd.matches("^(.*?(\\blakeland\\b)[^$]*)$")||precmd.matches("^(.*?(\\bland\\b)[^$]*)$")||precmd.matches("^(.*?(\\bline\\b)[^$]*)$")||precmd.matches("^(.*?(\\bfun\\b)[^$]*)$")||precmd.matches("^(.*?(\\bmine\\b)[^$]*)$")){
+					
+					showMsg("one");
+					poscmd="led1on";
+					
+				}
+			}
+		}
+		
+		if(precmd.matches("^(.*?(\\boff\\b)[^$]*)$")||precmd.matches("^(.*?(\\bof\\b)[^$]*)$")||precmd.matches("^(.*?(\\ball\\b)[^$]*)$")||precmd.matches("^(.*?(\\ball\\b)[^$]*)$"))
+		{
+			showMsg("off");
+			if(precmd.matches("^(.*?(\\blight\\b)[^$]*)$")||precmd.matches("^(.*?(\\blake\\b)[^$]*)$")||precmd.matches("^(.*?(\\blakeland\\b)[^$]*)$")||precmd.matches("^(.*?(\\bflight\\b)[^$]*)$")||precmd.matches("^(.*?(\\blike\\b)[^$]*)$"))
+			{
+				showMsg("light");
+				if(precmd.matches("^(.*?(\\bone\\b)[^$]*)$")||precmd.matches("^(.*?(\\blakeland\\b)[^$]*)$")||precmd.matches("^(.*?(\\bman\\b)[^$]*)$")||precmd.matches("^(.*?(\\b1\\b)[^$]*)$")||precmd.matches("^(.*?(\\bline\\b)[^$]*)$")||precmd.matches("^(.*?(\\bfun\\b)[^$]*)$")||precmd.matches("^(.*?(\\bmine\\b)[^$]*)$")){
+					
+					showMsg("one");
+					poscmd="led1off";
+					
+				}
+			}
+		}
+		
+	
+		return poscmd;
+	}
+	
+	public void connectMango(){
+		
+		try{
+			enableStrictMode();
+			
+            InetAddress address = InetAddress.getByName(host);
+            socket = new Socket(address, port);
+            showMsg("Connected to "+address);
+            
+		}
+		catch(Exception e){
+			showMsg(e.toString());
+		}
+		
+	}
+	
+	public void sendCmd(){
+		
+		try
+        {
+            OutputStream os = socket.getOutputStream();
+            OutputStreamWriter osw = new OutputStreamWriter(os);
+            BufferedWriter bw = new BufferedWriter(osw);
+			   
+			bw.write(pos);
+			bw.flush();
+			pos="";
+        }
+        catch (Exception e) 
+        {
+           showMsg(e.toString());
+        }
+	}
+	
+	public void closeMango(){
+		 try
+         {
+             socket.close();
+         }
+         catch(Exception e)
+         {
+             e.printStackTrace();
+         }
+	}
+	
+	
+	public void showMsg(String msg){
+    	Context context = getApplicationContext();
+    	int duration = Toast.LENGTH_SHORT;
+
+    	Toast toast = Toast.makeText(context, msg, duration);
+    	toast.show();
+    }
+	
+	public void enableStrictMode()
+	{
+	    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+	 
+	    StrictMode.setThreadPolicy(policy);
+	}
+	//- See more at: http://simpledeveloper.com/network-on-main-thread-error-solution/#sthash.OylTw860.dpuf
+}
+
+
